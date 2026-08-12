@@ -1,31 +1,19 @@
 package com.multithrading.service;
 
+import com.multithrading.dto.OrderRequest;
+import com.multithrading.dto.TaskResult;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 
 @Service
 public class InventoryService {
 
-    public String checkInventory() {
+    @Autowired
+    private TaskService taskService;
 
-        String threadName = Thread.currentThread().getName();
-        System.out.println("checking inventory threadName: " + threadName);
+    public TaskResult inventory(OrderRequest request) {
 
-        sleep(2000);
-
-        return "Inventory Checking Done";
-
+        return taskService.execute("INVENTORY", 2000, () -> "Inventory available for " + request.productId());
     }
-
-    private void sleep(long millis) {
-        try {
-
-            Thread.sleep(millis);
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
-    }
-
 }

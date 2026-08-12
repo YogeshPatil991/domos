@@ -1,10 +1,13 @@
 package com.multithrading.service;
 
+import com.multithrading.dto.OrderRequest;
 import com.multithrading.dto.OrderResult;
+import com.multithrading.dto.TaskResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -18,59 +21,53 @@ public class OrderService {
     private InventoryService inventoryService;
 
     @Autowired
-    private ShippingService shippingService;
+    private NotificationService notificationService;
 
     @Autowired
-    private NotificationService notificationService;
+    private ShippingService shippingService;
 
     @Qualifier("orderTaskExecutor")
     @Autowired
-    private Executor orderTaskExecutor;
+    private Executor orderExecutor;
 
-    public OrderResult processOrder() {
+    public OrderResult processParallel(
+            OrderRequest request) {
 
         long start = System.currentTimeMillis();
 
-        CompletableFuture<String> payment =
-                CompletableFuture.supplyAsync(
-                        paymentService::paymentProcess,
-                        orderTaskExecutor
-                );
+        CompletableFuture<TaskResult> payment = CompletableFuture.supplyAsync(() -> paymentService.payment(request), orderExecutor);
 
-        CompletableFuture<String> inventory =
-                CompletableFuture.supplyAsync(
-                        inventoryService::checkInventory,
-                        orderTaskExecutor
-                );
+        CompletableFuture<TaskResult> inventory = CompletableFuture.supplyAsync(() -> inventoryService.inventory(request), orderExecutor);
 
-        CompletableFuture<String> shipping =
-                CompletableFuture.supplyAsync(
-                        shippingService::calculateShipping,
-                        orderTaskExecutor
-                );
+        CompletableFuture<TaskResult> shipping = CompletableFuture.supplyAsync(() -> shippingService.shipping(request), orderExecutor);
 
-        CompletableFuture<String> notification =
-                CompletableFuture.supplyAsync(
-                        notificationService::sendNotification,
-                        orderTaskExecutor
-                );
+        CompletableFuture<TaskResult> notification = CompletableFuture.supplyAsync(() -> notificationService.notification(request), orderExecutor);
 
-        CompletableFuture.allOf(
-                payment,
-                inventory,
-                shipping,
-                notification
-        ).join();
+        CompletableFuture.allOf(payment, inventory, shipping, notification).join();
 
-        long executionTime =
-                System.currentTimeMillis() - start;
+        long executionTime = System.currentTimeMillis() - start;
 
-        return new OrderResult(
-                payment.join(),
-                inventory.join(),
-                shipping.join(),
-                notification.join(),
-                executionTime
+        List<TaskResult> tasks = List.of(payment.join(), inventory.join(), shipping.join(), notification.join()
+        );
+
+        return new OrderResult(request.orderId(), "PARALLEL", "SUCCESS", executionTime, tasks);
+    }
+
+    public OrderResult processSequential(OrderRequest request) {
+
+        long start = System.currentTimeMillis();
+
+        TaskResult payment = paymentService.payment(request);
+
+        TaskResult inventory = inventoryService.inventory(request);
+
+        TaskResult shipping = shippingService.shipping(request);
+
+        TaskResult notification = notificationService.notification(request);
+
+        long executionTime = System.currentTimeMillis() - start;
+
+        return new OrderResult(request.orderId(), "SEQUENTIAL", "SUCCESS", executionTime, List.of(payment, inventory, shipping, notification)
         );
     }
 }

@@ -1,31 +1,18 @@
 package com.multithrading.service;
 
+import com.multithrading.dto.OrderRequest;
+import com.multithrading.dto.TaskResult;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PaymentService {
 
-    public String paymentProcess() {
+    @Autowired
+    private TaskService taskService;
 
-        String threadName = Thread.currentThread().getName();
-        System.out.println("payment process threadName: " + threadName);
+    public TaskResult payment(OrderRequest request) {
 
-        sleep(2000);
-
-        return "Payment Successful";
-
+        return taskService.execute("PAYMENT", 2000, () -> "Payment successful for amount " + request.amount());
     }
-
-    private void sleep(long millis) {
-        try {
-
-            Thread.sleep(millis);
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
-    }
-
 }

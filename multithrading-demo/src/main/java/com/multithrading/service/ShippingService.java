@@ -1,31 +1,19 @@
 package com.multithrading.service;
 
+import com.multithrading.dto.OrderRequest;
+import com.multithrading.dto.TaskResult;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ShippingService {
 
-    public String calculateShipping() {
+    @Autowired
+    private TaskService taskService;
 
-        String threadName = Thread.currentThread().getName();
-        System.out.println("Calculate shipping threadName: " + threadName);
+    public TaskResult shipping(OrderRequest request) {
 
-        sleep(2000);
-
-        return "Calculate Shipping Done";
-
-    }
-
-    private void sleep(long millis) {
-        try {
-
-            Thread.sleep(millis);
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
+        return taskService.execute("SHIPPING", 2000, () -> "Shipping calculated");
     }
 
 }

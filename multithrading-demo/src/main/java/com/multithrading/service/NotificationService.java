@@ -1,31 +1,20 @@
 package com.multithrading.service;
 
+import com.multithrading.dto.OrderRequest;
+import com.multithrading.dto.TaskResult;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 
 @Service
 public class NotificationService {
 
-    public String sendNotification() {
+    @Autowired
+    private TaskService taskService;
 
-        String threadName = Thread.currentThread().getName();
-        System.out.println("send notification threadName: " + threadName);
+    public TaskResult notification(OrderRequest request) {
 
-        sleep(2000);
-
-        return "Send Notification Done";
-
-    }
-
-    private void sleep(long millis) {
-        try {
-
-            Thread.sleep(millis);
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
+        return taskService.execute("NOTIFICATION", 2000, () -> "Notification sent to " + request.customerId());
     }
 
 }
